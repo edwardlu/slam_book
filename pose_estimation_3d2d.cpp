@@ -51,6 +51,17 @@ int main ( int argc, char** argv )
 
     // 建立3D点
     Mat d1 = imread ( argv[3], CV_LOAD_IMAGE_UNCHANGED );       // 深度图为16位无符号数，单通道图像
+    Mat cam(3,3,CV_32FC1);
+    cam.at<float>(0,0) = 520.9;
+    cam.at<float>(0,1) = 0.0;
+    cam.at<float>(0,2) = 325.1;
+    cam.at<float>(1,0) = 0.0;
+    cam.at<float>(1,1) = 521.0;
+    cam.at<float>(1,2) = 249.7;
+    cam.at<float>(2,0) = 0.0;
+    cam.at<float>(2,2) = 0.0;
+    cam.at<float>(2,2) = 1.0;
+    
     Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
     vector<Point3f> pts_3d;
     vector<Point2f> pts_2d;
@@ -67,33 +78,47 @@ int main ( int argc, char** argv )
 
     cout<<"3d-2d pairs: "<<pts_3d.size() <<endl;
 
-    /* CPU Solver*/
-    Mat r, t;    
-    solvePnP ( pts_3d, pts_2d, K, Mat(), r, t, false ); // 调用OpenCV 的 PnP 求解，可选择EPNP，DLS等方法
-
     Mat R;
-    cv::Rodrigues ( r, R ); // r为旋转向量形式，用Rodrigues公式转换为矩阵
+    Mat r, t;
+    double start; 
+    start = (double)cv::getTickCount();
+    solvePnP ( pts_3d, pts_2d, K, Mat(), r, t, false ); // 调用OpenCV 的 PnP 求解，可选择EPNP，DLS等方法
+    cout<<"CPU takes : "<< ((double)cv::getTickCount() - start)/cv::getTickFrequency() <<endl;
 
-    cout<<"R="<<endl<<R<<endl;
-    cout<<"t="<<endl<<t<<endl;
+    cout<<r<<endl;
+//    cv::Rodrigues ( r, R ); // r为旋转向量形式，用Rodrigues公式转换为矩阵
+//    cout<<"CPU RESULT :"<<endl;
+//    cout<<"R="<<endl<<R<<endl;
+//    cout<<"t="<<endl<<t<<endl;
 
-    /* GPU Solver*/
-#if 0
-    cv::cuda::solvePnPRansac(const Mat& object, 
-				const Mat& image, 
-				const Mat& camera_mat,
-				const Mat& dist_coef, 
-				Mat& rvec, 
-				Mat& tvec, 
-				bool use_extrinsic_guess,
-				int num_iters, 
-				float max_dist, 
-				int min_inlier_count,
-				std::vector<int>* inliers);
-#endif
-    cout<<"calling bundle adjustment"<<endl;
+    cv::Mat r_gpu(1,3,CV_32FC1);
+    cv::Mat t_gpu(1,3,CV_32FC1);
+    
+    Mat d3_points(1,matches.size(),CV_32FC3,&pts_3d[0]);
+    Mat d2_points(1,matches.size(),CV_32FC2,&pts_2d[0]);
+    Mat dist(1,8,CV_32F,Scalar::all(0));
 
-    bundleAdjustment ( pts_3d, pts_2d, K, R, t );
+//    cv::cuda::solvePnPRansac(d3_points, 
+//                             d2_points, 
+//                            cam,
+//                             dist, 
+//                             r_gpu, 
+//                             t_gpu);
+
+    start = (double)cv::getTickCount();
+    for(int i = 0;i<10;i++)
+	solvePnPRansac(d3_points,d2_points,cam,dist,r_gpu,t_gpu);
+    cout<<"GPU takes : "<< ((double)cv::getTickCount() - start)/cv::getTickFrequency() <<endl;
+    cout<<r_gpu<<endl;
+//    cv::Rodrigues ( r_gpu, R );
+//    cout<<"GPU RESULT"<<endl;
+//    cout<<"R="<<endl<<R<<endl;
+//    cout<<"t="<<endl<<t_gpu<<endl;
+
+//    cout<<"calling bundle adjustment"<<endl;
+//    bundleAdjustment ( pts_3d, pts_2d, K, R, t );
+
+    return 0;
 }
 
 void find_feature_matches ( const Mat& img_1, const Mat& img_2,

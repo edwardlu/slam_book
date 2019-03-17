@@ -3,23 +3,20 @@ project( vo1 )
 
 set( CMAKE_BUILD_TYPE "Release" )
 set( CMAKE_CXX_FLAGS "-std=c++11 -O3" )
-set( OpenCV_DIR /usr/local/share/OpenCV) 
-set( CUDA_INCLUDE_DIRS /usr/local/cuda/include)
-set( EIGEN_INCLUDE_DIRS /usr/local/include/eigen3)
+
 # 添加cmake模块以使用g2o
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
 
 find_package( OpenCV 3.2 REQUIRED )
 # find_package( OpenCV REQUIRED ) # use this if in OpenCV2 
 find_package( G2O REQUIRED )
-#find_package( CSparse REQUIRED )
-find_package( CUDA REQUIRED )
+find_package( CSparse REQUIRED )
 
 include_directories( 
     ${OpenCV_INCLUDE_DIRS} 
     ${G2O_INCLUDE_DIRS}
-    ${CUDA_INCLUDE_DIRS}
-    ${EIGEN_INCLUDE_DIRS}
+    ${CSPARSE_INCLUDE_DIR}
+    "/usr/include/eigen3/"
 )
 
 #add_executable( feature_extraction feature_extraction.cpp  )
